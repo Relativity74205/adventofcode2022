@@ -31,11 +31,15 @@ func ReadFile(filename string) []string {
 	return lines
 }
 
-func LinesToInt(lines []string) []int {
-	var intLines []int
-	for _, v := range lines {
-		vint, _ := strconv.Atoi(v)
-		intLines = append(intLines, vint)
+func LinesToInt(lines []string) [][]int {
+	var intLines [][]int
+	for _, line := range lines {
+		var intLine []int
+		for _, c := range line {
+			val, _ := strconv.Atoi(string(c))
+			intLine = append(intLine, val)
+		}
+		intLines = append(intLines, intLine)
 	}
 
 	return intLines
