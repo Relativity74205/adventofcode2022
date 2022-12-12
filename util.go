@@ -44,3 +44,21 @@ func LinesToInt(lines []string) [][]int {
 
 	return intLines
 }
+
+func AbsInt(i int) int {
+	if i < 0 {
+		return -i
+	} else {
+		return i
+	}
+}
+
+func SignInt(i int) int {
+	if i < 0 {
+		return -1
+	} else if i > 0 {
+		return 1
+	} else {
+		return 0
+	}
+}
