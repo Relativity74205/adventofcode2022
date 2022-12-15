@@ -49,7 +49,7 @@ func evalB(elves map[int]int) int {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 	elves := getElves(lines)
 
 	resA := evalA(elves)

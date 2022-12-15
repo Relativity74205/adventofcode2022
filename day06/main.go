@@ -33,7 +33,7 @@ func evalB(input string) int {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 
 	resA := evalA(lines[0])
 	resB := evalB(lines[0])

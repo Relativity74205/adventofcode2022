@@ -87,7 +87,7 @@ func getNewPaths(valleyMap [][]int, path Path) []Path {
 		lastPos := path.lastPos()
 		newPos := Pos{lastPos.x + delta.x, lastPos.y + delta.y}
 
-		if AoC2022.CheckInBounds(valleyMap, newPos.x, newPos.y) {
+		if util.CheckInBounds(valleyMap, newPos.x, newPos.y) {
 			currentHeight := getHeight(valleyMap, lastPos)
 			newHeight := getHeight(valleyMap, newPos)
 			if currentHeight+1 >= newHeight {
@@ -168,7 +168,7 @@ func evalB(valleyMap [][]int, endPosition Pos) int {
 	for _, startPosition := range potentialStartPositions {
 		minDistanceTraveled, err := traverse(startPosition, endPosition, valleyMap)
 		if err == nil {
-			bestMinDistanceTraveled = AoC2022.MinInt(bestMinDistanceTraveled, minDistanceTraveled)
+			bestMinDistanceTraveled = util.MinInt(bestMinDistanceTraveled, minDistanceTraveled)
 		}
 	}
 
@@ -189,7 +189,7 @@ func createValleyMap(lines []string) [][]int {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 	valleyMap := createValleyMap(lines)
 	startPosition, _ := getStartPosition(valleyMap)
 	endPosition, _ := getEndPosition(valleyMap)

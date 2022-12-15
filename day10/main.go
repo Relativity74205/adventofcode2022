@@ -82,7 +82,7 @@ func printB(crt string) {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 
 	resA := evalA(lines)
 	resB := evalB(lines)

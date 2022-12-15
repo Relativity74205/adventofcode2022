@@ -25,7 +25,7 @@ func parseMonkeys(lines []string) []Monkey {
 		line4parts := strings.Split(lines[i*7+3], " ")
 		line5parts := strings.Split(lines[i*7+4], " ")
 		line6parts := strings.Split(lines[i*7+5], " ")
-		items, _ := AoC2022.StringSliceToIntSlice(strings.Split(line2parts[1], ", "))
+		items, _ := util.StringSliceToIntSlice(strings.Split(line2parts[1], ", "))
 		operation := strings.Split(lines[i*7+2], " = ")[1]
 		divisor, _ := strconv.Atoi(line4parts[len(line4parts)-1])
 		trueTarget, _ := strconv.Atoi(line5parts[len(line5parts)-1])
@@ -133,7 +133,7 @@ func evalB(monkeyInput []Monkey) int {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 	monkeys := parseMonkeys(lines)
 
 	resA := evalA(monkeys)

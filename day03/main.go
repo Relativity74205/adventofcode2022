@@ -44,7 +44,7 @@ func evalA(lines []string) int {
 		backpack2Chars := getCharsFromString(backpack2)
 
 		commonChar := getCommonRunes(backpack1Chars, backpack2Chars)
-		for c, _ := range commonChar {
+		for c := range commonChar {
 			totalPriority += calcPriority(c)
 		}
 	}
@@ -61,7 +61,7 @@ func evalB(lines []string) int {
 
 		commonChars := getCommonRunes(elf1Chars, elf2Chars)
 		commonChar := getCommonRunes(commonChars, elf3Chars)
-		for c, _ := range commonChar {
+		for c := range commonChar {
 			totalPriority += calcPriority(c)
 		}
 	}
@@ -70,7 +70,7 @@ func evalB(lines []string) int {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 
 	resA := evalA(lines)
 	resB := evalB(lines)

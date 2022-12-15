@@ -1,4 +1,4 @@
-package AoC2022
+package util
 
 import (
 	"bufio"
@@ -63,8 +63,25 @@ func SignInt(i int) int {
 	}
 }
 
+func PowInt(base int, exponent int) int {
+	result := 1
+	for i := 0; i < exponent; i++ {
+		result *= base
+	}
+
+	return result
+}
+
 func MinInt(i1, i2 int) int {
 	if i1 < i2 {
+		return i1
+	} else {
+		return i2
+	}
+}
+
+func MaxInt(i1, i2 int) int {
+	if i1 > i2 {
 		return i1
 	} else {
 		return i2

@@ -13,12 +13,12 @@ type Position struct {
 }
 
 func calcTail(head Position, tail Position) Position {
-	if AoC2022.AbsInt(head.x-tail.x) >= 2 {
-		tail.x += AoC2022.SignInt(head.x - tail.x)
-		tail.y += AoC2022.SignInt(head.y - tail.y)
-	} else if AoC2022.AbsInt(head.y-tail.y) >= 2 {
-		tail.x += AoC2022.SignInt(head.x - tail.x)
-		tail.y += AoC2022.SignInt(head.y - tail.y)
+	if util.AbsInt(head.x-tail.x) >= 2 {
+		tail.x += util.SignInt(head.x - tail.x)
+		tail.y += util.SignInt(head.y - tail.y)
+	} else if util.AbsInt(head.y-tail.y) >= 2 {
+		tail.x += util.SignInt(head.x - tail.x)
+		tail.y += util.SignInt(head.y - tail.y)
 	}
 
 	return tail
@@ -82,7 +82,7 @@ func evalB(lines []string) int {
 }
 
 func eval(filename string, debug bool) {
-	lines := AoC2022.ReadFile(filename)
+	lines := util.ReadFile(filename)
 
 	resA := evalA(lines)
 	resB := evalB(lines)
