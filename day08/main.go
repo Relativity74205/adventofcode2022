@@ -51,7 +51,7 @@ func checkXRight(x, y int, lines [][]int) bool {
 func checkYTopDist(x, y int, lines [][]int) int {
 	for i := x - 1; i >= 0; i-- {
 		if lines[i][y] >= lines[x][y] {
-			return int(math.Abs(float64(x - i)))
+			return AoC2022.AbsInt(x - i)
 		}
 	}
 
@@ -61,7 +61,7 @@ func checkYTopDist(x, y int, lines [][]int) int {
 func checkYBottomDist(x, y int, lines [][]int) int {
 	for i := x + 1; i < len(lines); i++ {
 		if lines[i][y] >= lines[x][y] {
-			return int(math.Abs(float64(x - i)))
+			return AoC2022.AbsInt(x - i)
 		}
 	}
 
@@ -71,7 +71,7 @@ func checkYBottomDist(x, y int, lines [][]int) int {
 func checkXLeftDist(x, y int, lines [][]int) int {
 	for i := y - 1; i >= 0; i-- {
 		if lines[x][i] >= lines[x][y] {
-			return int(math.Abs(float64(y - i)))
+			return AoC2022.AbsInt(y - i)
 		}
 	}
 
@@ -82,7 +82,7 @@ func checkXLeftDist(x, y int, lines [][]int) int {
 func checkXRightDist(x, y int, lines [][]int) int {
 	for i := y + 1; i < len(lines); i++ {
 		if lines[x][i] >= lines[x][y] {
-			return int(math.Abs(float64(y - i)))
+			return AoC2022.AbsInt(y - i)
 		}
 	}
 

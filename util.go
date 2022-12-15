@@ -63,6 +63,14 @@ func SignInt(i int) int {
 	}
 }
 
+func MinInt(i1, i2 int) int {
+	if i1 < i2 {
+		return i1
+	} else {
+		return i2
+	}
+}
+
 func StringSliceToIntSlice(s []string) ([]int, error) {
 	var integers []int
 	for _, ele := range s {
@@ -74,4 +82,15 @@ func StringSliceToIntSlice(s []string) ([]int, error) {
 	}
 
 	return integers, nil
+}
+
+func CheckInBounds(mapArray [][]int, x, y int) bool {
+	maxHeight := len(mapArray) - 1
+	maxWidth := len(mapArray[0]) - 1
+
+	if x < 0 || y < 0 || x > maxWidth || y > maxHeight {
+		return false
+	}
+
+	return true
 }
