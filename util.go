@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -110,4 +111,14 @@ func CheckInBounds(mapArray [][]int, x, y int) bool {
 	}
 
 	return true
+}
+
+func GetIndexInStringSlice(slice []string, searchedValue string) (int, error) {
+	for i, val := range slice {
+		if val == searchedValue {
+			return i, nil
+		}
+	}
+
+	return -1, errors.New("searchedValue not found")
 }
