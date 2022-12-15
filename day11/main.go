@@ -4,17 +4,15 @@ import (
 	"AoC2022"
 	"fmt"
 	"math"
-	"math/big"
 	"sort"
 	"strconv"
 	"strings"
 )
 
 type Monkey struct {
-	items            []big.Int
+	items            []int
 	operation        string
-	operationNumber  *big.Int
-	divisor          big.Int
+	divisor          int
 	trueTarget       int
 	falseTarget      int
 	countInspections int
@@ -22,31 +20,23 @@ type Monkey struct {
 
 func parseMonkeys(lines []string) []Monkey {
 	var monkeys []Monkey
-	var operationNumber int
 	for i := 0; i < (len(lines)+1)/7; i++ {
 		line2parts := strings.Split(lines[i*7+1], ": ")
 		line4parts := strings.Split(lines[i*7+3], " ")
 		line5parts := strings.Split(lines[i*7+4], " ")
 		line6parts := strings.Split(lines[i*7+5], " ")
-		items, _ := AoC2022.StringSliceToBigIntSlice(strings.Split(line2parts[1], ", "))
+		items, _ := AoC2022.StringSliceToIntSlice(strings.Split(line2parts[1], ", "))
 		operation := strings.Split(lines[i*7+2], " = ")[1]
 		divisor, _ := strconv.Atoi(line4parts[len(line4parts)-1])
 		trueTarget, _ := strconv.Atoi(line5parts[len(line5parts)-1])
 		falseTarget, _ := strconv.Atoi(line6parts[len(line6parts)-1])
-		operationParts := strings.Split(operation, " ")
-		if len(operationParts) == 3 {
-			operationNumber, _ = strconv.Atoi(operationParts[2])
-		}
 
-		var bigIntDivisor big.Int
-		bigIntDivisor.SetInt64(int64(divisor))
 		monkey := Monkey{
-			items:           items,
-			operation:       operation,
-			operationNumber: big.NewInt(int64(operationNumber)),
-			divisor:         bigIntDivisor,
-			trueTarget:      trueTarget,
-			falseTarget:     falseTarget,
+			items:       items,
+			operation:   operation,
+			divisor:     divisor,
+			trueTarget:  trueTarget,
+			falseTarget: falseTarget,
 		}
 		monkeys = append(monkeys, monkey)
 	}
@@ -54,7 +44,7 @@ func parseMonkeys(lines []string) []Monkey {
 	return monkeys
 }
 
-func calcNewWeight(oldWeight int, operation string, divideByThree bool) int {
+func calcNewWeight(oldWeight int, operation string) int {
 	var newWeight int
 	switch parts := strings.Split(operation, " "); {
 	case parts[1] == "+":
@@ -66,27 +56,19 @@ func calcNewWeight(oldWeight int, operation string, divideByThree bool) int {
 		factor, _ := strconv.Atoi(parts[2])
 		newWeight = oldWeight * factor
 	}
-
-	if divideByThree {
-		return int(math.Floor(float64(newWeight / 3)))
-	} else {
-		return newWeight
-	}
-
+	return newWeight
 }
 
-func calcNewWeightBigInt(oldWeight *big.Int, operation string, operationNumber *big.Int) *big.Int {
-	var newWeight *big.Int
-	switch parts := strings.Split(operation, " "); {
-	case parts[1] == "+":
-		newWeight = big.NewInt(0).Add(oldWeight, operationNumber)
-	case parts[1] == "*" && parts[2] == "old":
-		newWeight = big.NewInt(0).Mul(oldWeight, oldWeight)
-	case parts[1] == "*":
-		newWeight = big.NewInt(0).Mul(oldWeight, operationNumber)
-	}
+func calcNewWeightA(oldWeight int, operation string) int {
+	newWeight := calcNewWeight(oldWeight, operation)
 
-	return newWeight
+	return int(math.Floor(float64(newWeight / 3)))
+}
+
+func calcNewWeightB(oldWeight int, operation string, moduloProduct int) int {
+	newWeight := calcNewWeight(oldWeight, operation)
+
+	return newWeight % moduloProduct
 }
 
 func evalA(monkeyInput []Monkey) int {
@@ -99,16 +81,15 @@ func evalA(monkeyInput []Monkey) int {
 		for i := 0; i < len(monkeys); i++ {
 			for _, itemWeight := range monkeys[i].items {
 				monkeys[i].countInspections += 1
-				newWeight := big.NewInt(int64(calcNewWeight(int(itemWeight.Int64()), monkeys[i].operation, true)))
+				newWeight := calcNewWeightA(itemWeight, monkeys[i].operation)
 
-				mod := big.NewInt(0).Mod(newWeight, &monkeys[i].divisor)
-				if mod.Cmp(big.NewInt(0)) == 0 {
-					monkeys[monkeys[i].trueTarget].items = append(monkeys[monkeys[i].trueTarget].items, *newWeight)
+				if newWeight%monkeys[i].divisor == 0 {
+					monkeys[monkeys[i].trueTarget].items = append(monkeys[monkeys[i].trueTarget].items, newWeight)
 				} else {
-					monkeys[monkeys[i].falseTarget].items = append(monkeys[monkeys[i].falseTarget].items, *newWeight)
+					monkeys[monkeys[i].falseTarget].items = append(monkeys[monkeys[i].falseTarget].items, newWeight)
 				}
 			}
-			monkeys[i].items = make([]big.Int, 0)
+			monkeys[i].items = make([]int, 0)
 		}
 	}
 	sort.Slice(monkeys, func(i, j int) bool {
@@ -121,23 +102,26 @@ func evalA(monkeyInput []Monkey) int {
 func evalB(monkeyInput []Monkey) int {
 	monkeys := make([]Monkey, len(monkeyInput))
 	copy(monkeys, monkeyInput)
+	moduloProduct := 1
+	for _, monkey := range monkeys {
+		moduloProduct *= monkey.divisor
+	}
 
-	totalRounds := 20
+	totalRounds := 10000
 
 	for round := 0; round < totalRounds; round++ {
 		for i := 0; i < len(monkeys); i++ {
 			for _, itemWeight := range monkeys[i].items {
 				monkeys[i].countInspections += 1
-				newWeight := calcNewWeightBigInt(&itemWeight, monkeys[i].operation, monkeys[i].operationNumber)
+				newWeight := calcNewWeightB(itemWeight, monkeys[i].operation, moduloProduct)
 
-				mod := big.NewInt(0).Mod(newWeight, &monkeys[i].divisor)
-				if mod.Cmp(big.NewInt(0)) == 0 {
-					monkeys[monkeys[i].trueTarget].items = append(monkeys[monkeys[i].trueTarget].items, *newWeight)
+				if newWeight%monkeys[i].divisor == 0 {
+					monkeys[monkeys[i].trueTarget].items = append(monkeys[monkeys[i].trueTarget].items, newWeight)
 				} else {
-					monkeys[monkeys[i].falseTarget].items = append(monkeys[monkeys[i].falseTarget].items, *newWeight)
+					monkeys[monkeys[i].falseTarget].items = append(monkeys[monkeys[i].falseTarget].items, newWeight)
 				}
 			}
-			monkeys[i].items = make([]big.Int, 0)
+			monkeys[i].items = make([]int, 0)
 		}
 	}
 

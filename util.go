@@ -3,7 +3,6 @@ package AoC2022
 import (
 	"bufio"
 	"log"
-	"math/big"
 	"os"
 	"strconv"
 )
@@ -64,16 +63,14 @@ func SignInt(i int) int {
 	}
 }
 
-func StringSliceToBigIntSlice(s []string) ([]big.Int, error) {
-	var integers []big.Int
+func StringSliceToIntSlice(s []string) ([]int, error) {
+	var integers []int
 	for _, ele := range s {
 		integer, err := strconv.Atoi(ele)
-		var biginteger big.Int
-		biginteger.SetInt64(int64(integer))
 		if err != nil {
 			return nil, err
 		}
-		integers = append(integers, biginteger)
+		integers = append(integers, integer)
 	}
 
 	return integers, nil
