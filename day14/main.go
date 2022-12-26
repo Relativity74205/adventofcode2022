@@ -19,21 +19,6 @@ type Cave struct {
 	maxDepth int
 }
 
-func printCaveMap(cave Cave) {
-	for y, line := range cave.caveMap {
-		if y > cave.maxDepth+2 {
-			continue
-		}
-
-		for x, val := range line {
-			if x >= 480 && x <= 520 {
-				fmt.Print(val)
-			}
-		}
-		fmt.Println("")
-	}
-}
-
 func makeCaveMap(lines []string) Cave {
 	var totalYMax int
 	caveMap := make([][]uint, caveHeight)
