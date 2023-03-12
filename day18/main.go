@@ -15,68 +15,64 @@ type Space struct {
 	xMin, xMax, yMin, yMax, zMin, zMax int
 }
 
+type ToVisitStructure struct {
+	list          []Coords
+	alreadyOnList map[Coords]bool
+}
+
+func newToVisit() ToVisitStructure {
+	var toVisit ToVisitStructure
+	toVisit.alreadyOnList = make(map[Coords]bool)
+	return toVisit
+}
+
+func (v *ToVisitStructure) add(coordinate Coords) {
+	v.list = append(v.list, coordinate)
+	v.alreadyOnList[coordinate] = true
+}
+
+func (v *ToVisitStructure) pop() Coords {
+	coordinate := v.list[0]
+	v.list = v.list[1:]
+	return coordinate
+}
+
+func (v *ToVisitStructure) finished() bool {
+	return len(v.list) == 0
+}
+
 func evalA(lines []string) int {
-	drops := getDropCoords(lines)
+	drops := parseCoords(lines)
 	totalSurface := getTotalSurface(drops)
 
 	return totalSurface
 }
 
 func getTotalSurface(drops map[Coords]bool) int {
-	totalSurface := 0
+	totalSurface := 6 * len(drops)
 	for drop := range drops {
-		surface := 6
-		if drops[Coords{drop.x + 1, drop.y, drop.z}] {
-			surface--
+		for _, coords := range getNeighbors(drop) {
+			if drops[coords] {
+				totalSurface--
+			}
 		}
-		if drops[Coords{drop.x - 1, drop.y, drop.z}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y + 1, drop.z}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y - 1, drop.z}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y, drop.z + 1}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y, drop.z - 1}] {
-			surface--
-		}
-		totalSurface += surface
 	}
 	return totalSurface
 }
 
 func getExternalSurface(drops map[Coords]bool, outsideSpace map[Coords]bool) int {
-	totalSurface := 0
+	totalSurface := 6 * len(drops)
 	for drop := range drops {
-		surface := 6
-		if drops[Coords{drop.x + 1, drop.y, drop.z}] || !outsideSpace[Coords{drop.x + 1, drop.y, drop.z}] {
-			surface--
+		for _, coords := range getNeighbors(drop) {
+			if drops[coords] || !outsideSpace[coords] {
+				totalSurface--
+			}
 		}
-		if drops[Coords{drop.x - 1, drop.y, drop.z}] || !outsideSpace[Coords{drop.x - 1, drop.y, drop.z}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y + 1, drop.z}] || !outsideSpace[Coords{drop.x, drop.y + 1, drop.z}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y - 1, drop.z}] || !outsideSpace[Coords{drop.x, drop.y - 1, drop.z}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y, drop.z + 1}] || !outsideSpace[Coords{drop.x, drop.y, drop.z + 1}] {
-			surface--
-		}
-		if drops[Coords{drop.x, drop.y, drop.z - 1}] || !outsideSpace[Coords{drop.x, drop.y, drop.z - 1}] {
-			surface--
-		}
-		totalSurface += surface
 	}
 	return totalSurface
 }
 
-func getDropCoords(lines []string) map[Coords]bool {
+func parseCoords(lines []string) map[Coords]bool {
 	drops := make(map[Coords]bool)
 
 	for _, line := range lines {
@@ -91,7 +87,7 @@ func getDropCoords(lines []string) map[Coords]bool {
 }
 
 func evalB(lines []string) int {
-	drops := getDropCoords(lines)
+	drops := parseCoords(lines)
 	outsideSpace := getOutsideSpace(drops)
 	externalSurface := getExternalSurface(drops, outsideSpace)
 
@@ -111,7 +107,13 @@ func getNeighbors(coordinate Coords) []Coords {
 }
 
 func withinBounds(coordinate Coords, space *Space) bool {
-	if coordinate.x < space.xMin || coordinate.x > space.xMax || coordinate.y < space.yMin || coordinate.y > space.yMax || coordinate.z < space.zMin || coordinate.z > space.zMax {
+	if coordinate.x < space.xMin || coordinate.x > space.xMax {
+		return false
+	}
+	if coordinate.y < space.yMin || coordinate.y > space.yMax {
+		return false
+	}
+	if coordinate.z < space.zMin || coordinate.z > space.zMax {
 		return false
 	}
 
@@ -121,22 +123,18 @@ func withinBounds(coordinate Coords, space *Space) bool {
 func getOutsideSpace(drops map[Coords]bool) map[Coords]bool {
 	maxSearchSpace := getSearchSpace(drops)
 	outsideSpace := make(map[Coords]bool)
-	var coordinatesToVisit []Coords
-	coordinatesToVisitAlreadyOnList := make(map[Coords]bool)
-	coordinatesToVisit = append(coordinatesToVisit, Coords{maxSearchSpace.xMin, maxSearchSpace.yMin, maxSearchSpace.zMin})
-	coordinatesToVisitAlreadyOnList[Coords{maxSearchSpace.xMin, maxSearchSpace.yMin, maxSearchSpace.zMin}] = true
+	toVisit := newToVisit()
+	toVisit.add(Coords{maxSearchSpace.xMin, maxSearchSpace.yMin, maxSearchSpace.zMin})
 
-	for len(coordinatesToVisit) > 0 {
-		coordinate := coordinatesToVisit[0]
-		coordinatesToVisit = coordinatesToVisit[1:]
+	for !toVisit.finished() {
+		coordinate := toVisit.pop()
 		if outsideSpace[coordinate] || drops[coordinate] {
 			continue
 		}
 
-		neighbors := getNeighbors(coordinate)
-		for _, neighbor := range neighbors {
+		for _, neighbor := range getNeighbors(coordinate) {
 			if withinBounds(neighbor, maxSearchSpace) {
-				coordinatesToVisit = append(coordinatesToVisit, neighbor)
+				toVisit.add(neighbor)
 			}
 		}
 
@@ -145,92 +143,6 @@ func getOutsideSpace(drops map[Coords]bool) map[Coords]bool {
 
 	return outsideSpace
 }
-
-//func getInternalSurface(drops map[Coords]bool) int {
-//	internalSpace := make(map[Coords]bool)
-//	emptySpace := make(map[Coords]bool)
-//	maxSearchSpace := getSearchSpace(drops)
-//
-//	for x := maxSearchSpace.xMin; x <= maxSearchSpace.xMax; x++ {
-//		for y := maxSearchSpace.yMin; y <= maxSearchSpace.yMax; y++ {
-//			for z := maxSearchSpace.zMin; z <= maxSearchSpace.zMax; z++ {
-//				coordinate := Coords{x, y, z}
-//				if drops[coordinate] || internalSpace[coordinate] || emptySpace[coordinate] {
-//					continue
-//				}
-//				searchedSpace, isInternalSpace := checkIfInternalSpace(coordinate, drops, emptySpace, &maxSearchSpace)
-//				if isInternalSpace {
-//					for _, coords := range searchedSpace {
-//						internalSpace[coords] = true
-//					}
-//				} else {
-//					for _, coords := range searchedSpace {
-//						emptySpace[coords] = true
-//					}
-//				}
-//			}
-//		}
-//	}
-//
-//	return getTotalSurface(internalSpace)
-//}
-//
-//func checkIfAppendToCoordsTOInvestigate(coordinate Coords, coordsToInvestigate []Coords, coordsToInvestigateAlreadyInSlice map[Coords]bool, drops map[Coords]bool, emptySpace map[Coords]bool) []Coords {
-//	if !drops[coordinate] && !emptySpace[coordinate] && !coordsToInvestigateAlreadyInSlice[coordinate] {
-//		coordsToInvestigate = append(coordsToInvestigate, coordinate)
-//		coordsToInvestigateAlreadyInSlice[coordinate] = true
-//	}
-//
-//	return coordsToInvestigate
-//}
-//
-//func checkIfInternalSpace(startCoordinate Coords, drops map[Coords]bool, emptySpace map[Coords]bool, maxSearchSpace *Space) ([]Coords, bool) {
-//	var coordsToInvestigate, searchedSpace []Coords
-//	coordsToInvestigateAlreadyInSlice := make(map[Coords]bool)
-//	coordsToInvestigate = append(coordsToInvestigate, startCoordinate)
-//
-//	for len(coordsToInvestigate) > 0 {
-//		coordinate := coordsToInvestigate[0]
-//		coordsToInvestigate = coordsToInvestigate[1:]
-//		searchedSpace = append(searchedSpace, coordinate)
-//		if drops[coordinate] || emptySpace[coordinate] {
-//			continue
-//		}
-//
-//		if coordinate.x == maxSearchSpace.xMin {
-//			return searchedSpace, false
-//		} else {
-//			coordsToInvestigate = checkIfAppendToCoordsTOInvestigate(Coords{coordinate.x - 1, coordinate.y, coordinate.z}, coordsToInvestigate, coordsToInvestigateAlreadyInSlice, drops, emptySpace)
-//		}
-//		if coordinate.x == maxSearchSpace.xMax {
-//			return searchedSpace, false
-//		} else {
-//			coordsToInvestigate = checkIfAppendToCoordsTOInvestigate(Coords{coordinate.x + 1, coordinate.y, coordinate.z}, coordsToInvestigate, coordsToInvestigateAlreadyInSlice, drops, emptySpace)
-//		}
-//		if coordinate.y == maxSearchSpace.yMin {
-//			return searchedSpace, false
-//		} else {
-//			coordsToInvestigate = checkIfAppendToCoordsTOInvestigate(Coords{coordinate.x, coordinate.y - 1, coordinate.z}, coordsToInvestigate, coordsToInvestigateAlreadyInSlice, drops, emptySpace)
-//		}
-//		if coordinate.y == maxSearchSpace.yMax {
-//			return searchedSpace, false
-//		} else {
-//			coordsToInvestigate = checkIfAppendToCoordsTOInvestigate(Coords{coordinate.x, coordinate.y + 1, coordinate.z}, coordsToInvestigate, coordsToInvestigateAlreadyInSlice, drops, emptySpace)
-//		}
-//		if coordinate.z == maxSearchSpace.zMin {
-//			return searchedSpace, false
-//		} else {
-//			coordsToInvestigate = checkIfAppendToCoordsTOInvestigate(Coords{coordinate.x, coordinate.y, coordinate.z - 1}, coordsToInvestigate, coordsToInvestigateAlreadyInSlice, drops, emptySpace)
-//		}
-//		if coordinate.z == maxSearchSpace.zMax {
-//			return searchedSpace, false
-//		} else {
-//			coordsToInvestigate = checkIfAppendToCoordsTOInvestigate(Coords{coordinate.x, coordinate.y, coordinate.z + 1}, coordsToInvestigate, coordsToInvestigateAlreadyInSlice, drops, emptySpace)
-//		}
-//	}
-//
-//	return searchedSpace, true
-//}
 
 func getSearchSpace(drops map[Coords]bool) *Space {
 	xMin := 1
