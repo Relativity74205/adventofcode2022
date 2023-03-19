@@ -81,6 +81,14 @@ func MinInt(i1, i2 int) int {
 	}
 }
 
+func MaxIntegers(integers ...int) int {
+	var max int
+	for _, integer := range integers {
+		max = MaxInt(max, integer)
+	}
+	return max
+}
+
 func MaxInt(i1, i2 int) int {
 	if i1 > i2 {
 		return i1
