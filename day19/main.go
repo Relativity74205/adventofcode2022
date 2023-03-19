@@ -3,7 +3,6 @@ package main
 import (
 	"AoC2022"
 	"fmt"
-	profile "github.com/pkg/profile"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,6 +27,29 @@ func (r *Resource) String() string {
 	return []string{"ore", "clay", "obsidian"}[*r]
 }
 
+//type robotCosts struct {
+//	resourceCount
+//}
+//
+//type production struct {
+//	resourceCount
+//}
+//
+//type availableResources struct {
+//	resourceCount
+//}
+
+type SimulationState struct {
+	minute     int
+	maxMinute  int
+	production resourceCount
+	resources  resourceCount
+}
+
+func (s *SimulationState) isFinished() bool {
+	return s.minute >= s.maxMinute
+}
+
 type Blueprint struct {
 	id                int
 	maxNumberGeodes   int
@@ -40,7 +62,23 @@ type Blueprint struct {
 	maxNeededObsidian int
 }
 
-func getCosts(stringPart string) resourceCount {
+func (blueprint *Blueprint) getCostsForRobot(robotType Resource) *resourceCount {
+	var costs *resourceCount
+	switch robotType {
+	case Ore:
+		costs = &blueprint.costOreRobot
+	case Clay:
+		costs = &blueprint.costClayRobot
+	case Obsidian:
+		costs = &blueprint.costObsidianRobot
+	case Geode:
+		costs = &blueprint.costGeodeRobot
+	}
+
+	return costs
+}
+
+func getCostsFromInput(stringPart string) resourceCount {
 	return resourceCount{
 		countOre:      getCost(stringPart, Ore),
 		countClay:     getCost(stringPart, Clay),
@@ -60,18 +98,18 @@ func getCost(stringPart string, resource Resource) int {
 	return cost
 }
 
-func parseBlueprint(line string, id int) Blueprint {
+func parseBlueprint(line string, id int) *Blueprint {
 	relevantPart := strings.Split(line, ": ")[1]
 	parts := strings.Split(relevantPart, ". ")
-	costsOreRobot := getCosts(parts[0])
-	costsClayRobot := getCosts(parts[1])
-	costsObsidianRobot := getCosts(parts[2])
-	costsGeodeRobot := getCosts(parts[3])
+	costsOreRobot := getCostsFromInput(parts[0])
+	costsClayRobot := getCostsFromInput(parts[1])
+	costsObsidianRobot := getCostsFromInput(parts[2])
+	costsGeodeRobot := getCostsFromInput(parts[3])
 	maxNeededOre := util.MaxIntegers(costsOreRobot.countOre, costsClayRobot.countOre, costsObsidianRobot.countOre, costsGeodeRobot.countOre)
 	maxNeededClay := util.MaxIntegers(costsOreRobot.countClay, costsClayRobot.countClay, costsObsidianRobot.countClay, costsGeodeRobot.countClay)
 	maxNeededObsidian := util.MaxIntegers(costsOreRobot.countObsidian, costsClayRobot.countObsidian, costsObsidianRobot.countObsidian, costsGeodeRobot.countObsidian)
 
-	return Blueprint{
+	return &Blueprint{
 		id:                id,
 		costOreRobot:      costsOreRobot,
 		costClayRobot:     costsClayRobot,
@@ -83,22 +121,14 @@ func parseBlueprint(line string, id int) Blueprint {
 	}
 }
 
-type SimulationState struct {
-	minute     int
-	maxMinute  int
-	production resourceCount
-	resources  resourceCount
-}
+func nextSimulationRound(results *Results, blueprint *Blueprint) {
+	simulationState := results.queue[0]
+	results.queue = results.queue[1:]
 
-func (s *SimulationState) isFinished() bool {
-	return s.minute >= s.maxMinute
-}
-
-func nextSimulationRound(simulationState *SimulationState, blueprint *Blueprint, openStates *statesDataStructure, results *Results) {
-	buildRobot(Ore, &blueprint.costOreRobot, simulationState, blueprint, openStates, results)
-	buildRobot(Clay, &blueprint.costClayRobot, simulationState, blueprint, openStates, results)
-	buildRobot(Obsidian, &blueprint.costObsidianRobot, simulationState, blueprint, openStates, results)
-	buildRobot(Geode, &blueprint.costGeodeRobot, simulationState, blueprint, openStates, results)
+	buildRobot(Ore, simulationState, blueprint, results)
+	buildRobot(Clay, simulationState, blueprint, results)
+	buildRobot(Obsidian, simulationState, blueprint, results)
+	buildRobot(Geode, simulationState, blueprint, results)
 }
 
 func canBeBuild(availableResources *resourceCount, costs *resourceCount) bool {
@@ -149,30 +179,21 @@ func increaseProduction(production *resourceCount, robotType Resource) {
 	}
 }
 
-func buildRobot(robotType Resource, costs *resourceCount, simulationState *SimulationState, blueprint *Blueprint, openStates *statesDataStructure, results *Results) {
+func buildRobot(robotType Resource, simulationState *SimulationState, blueprint *Blueprint, results *Results) {
+	costs := blueprint.getCostsForRobot(robotType)
 	minute := simulationState.minute
-	availableResources := resourceCount{
-		countOre:      simulationState.resources.countOre,
-		countClay:     simulationState.resources.countClay,
-		countObsidian: simulationState.resources.countObsidian,
-		countGeode:    simulationState.resources.countGeode,
-	}
+	availableResources := simulationState.resources
 	for minute < simulationState.maxMinute {
 		minute++
 		harvest := harvestResource(&simulationState.production)
 		if canBeBuild(&availableResources, costs) && !maxNeededProductionReached(robotType, &simulationState.production, blueprint) {
-
-			production := resourceCount{
-				countOre:      simulationState.production.countOre,
-				countClay:     simulationState.production.countClay,
-				countObsidian: simulationState.production.countObsidian,
-				countGeode:    simulationState.production.countGeode,
-			}
+			production := simulationState.production
 			increaseProduction(&production, robotType)
 			payResource(&availableResources, costs)
 			addResource(&availableResources, harvest)
 			state := SimulationState{minute: minute, maxMinute: simulationState.maxMinute, production: production, resources: availableResources}
-			openStates.queue = append([]*SimulationState{&state}, openStates.queue...)
+			//results.queue = append([]*SimulationState{&state}, results.queue...)
+			results.queue = append([]*SimulationState{&state}, results.queue...)
 			return
 		}
 		addResource(&availableResources, harvest)
@@ -193,47 +214,37 @@ func maxNeededProductionReached(robotType Resource, production *resourceCount, b
 	return false
 }
 
-type statesDataStructure struct {
-	queue       []*SimulationState
-	alreadySeen map[SimulationState]bool
-}
-
 type Results struct {
+	queue     []*SimulationState
 	maxGeodes int
 }
 
 func getMaxNumberOfGeodesFromBlueprint(blueprint *Blueprint, maxMinute int) int {
-	results := Results{}
 
-	startState := SimulationState{
+	startState := &SimulationState{
 		minute:     0,
 		maxMinute:  maxMinute,
 		production: resourceCount{countOre: 1, countClay: 0, countObsidian: 0, countGeode: 0},
 		resources:  resourceCount{countOre: 0, countClay: 0, countObsidian: 0, countGeode: 0},
 	}
-	openStates := statesDataStructure{
-		queue:       []*SimulationState{&startState},
-		alreadySeen: map[SimulationState]bool{startState: true},
-	}
+	results := &Results{queue: []*SimulationState{startState}}
 
-	for len(openStates.queue) > 0 {
-		state := openStates.queue[0]
-		openStates.queue = openStates.queue[1:]
-		nextSimulationRound(state, blueprint, &openStates, &results)
+	for len(results.queue) > 0 {
+		nextSimulationRound(results, blueprint)
 	}
 
 	return results.maxGeodes
 }
 
 func evalA(lines []string) int {
-	var blueprints []Blueprint
+	var blueprints []*Blueprint
 	for id, line := range lines {
 		blueprints = append(blueprints, parseBlueprint(line, id+1))
 	}
 
 	var sumQualityLevel int
 	for _, blueprint := range blueprints {
-		blueprint.maxNumberGeodes = getMaxNumberOfGeodesFromBlueprint(&blueprint, 24)
+		blueprint.maxNumberGeodes = getMaxNumberOfGeodesFromBlueprint(blueprint, 24)
 		//fmt.Printf("blueprint.maxNumberGeodes = %d\n", blueprint.maxNumberGeodes)
 		sumQualityLevel += blueprint.id * blueprint.maxNumberGeodes
 	}
@@ -242,7 +253,7 @@ func evalA(lines []string) int {
 }
 
 func evalB(lines []string) int {
-	var blueprints []Blueprint
+	var blueprints []*Blueprint
 	maxBlueprints := util.MinInt(len(lines), 3)
 	for id, line := range lines[:maxBlueprints] {
 		blueprints = append(blueprints, parseBlueprint(line, id+1))
@@ -250,7 +261,7 @@ func evalB(lines []string) int {
 
 	multipliedMaxNumberGeodes := 1
 	for _, blueprint := range blueprints {
-		blueprint.maxNumberGeodes = getMaxNumberOfGeodesFromBlueprint(&blueprint, 32)
+		blueprint.maxNumberGeodes = getMaxNumberOfGeodesFromBlueprint(blueprint, 32)
 		//fmt.Printf("blueprint.maxNumberGeodes = %d\n", blueprint.maxNumberGeodes)
 		multipliedMaxNumberGeodes *= blueprint.maxNumberGeodes
 	}
@@ -267,16 +278,15 @@ func eval(filename string, debug bool) {
 	} else {
 		fmt.Printf("A: %v \n", resA)
 	}
-	//resB := evalB(lines)
-	//if debug {
-	//	fmt.Printf("B (debug): %v \n", resB)
-	//} else {
-	//	fmt.Printf("B: %v \n", resB)
-	//}
+	resB := evalB(lines)
+	if debug {
+		fmt.Printf("B (debug): %v \n", resB)
+	} else {
+		fmt.Printf("B: %v \n", resB)
+	}
 }
 
 func main() {
-	defer profile.Start(profile.ProfilePath(".")).Stop()
 	day := 19
 	debugSuffix := "_debug"
 	filename := fmt.Sprintf("input%02d.txt", day)
