@@ -195,22 +195,24 @@ func maxNeededProductionReached(robotType Resource, production *resourceCount, b
 }
 
 func getMaxNumberOfGeodesFromBlueprint(blueprint *Blueprint, maxMinute int) int {
-	var finishedSimulations []SimulationState
-	states := []SimulationState{{
+	finishedSimulations := make(map[SimulationState]bool)
+	states := make(map[SimulationState]bool)
+	startState := SimulationState{
 		minute:     0,
 		maxMinute:  maxMinute,
 		production: resourceCount{countOre: 1, countClay: 0, countObsidian: 0, countGeode: 0},
 		resources:  resourceCount{countOre: 0, countClay: 0, countObsidian: 0, countGeode: 0},
-	}}
+	}
+	states[startState] = true
 	for len(states) > 0 {
-		var newStates []SimulationState
-		for _, state := range states {
+		newStates := make(map[SimulationState]bool)
+		for state := range states {
 			calculatedStates := nextSimulationRound(state, blueprint)
 			for _, state := range calculatedStates {
 				if state.isFinished() {
-					finishedSimulations = append(finishedSimulations, state)
+					finishedSimulations[state] = true
 				} else {
-					newStates = append(newStates, state)
+					newStates[state] = true
 				}
 			}
 		}
@@ -218,7 +220,7 @@ func getMaxNumberOfGeodesFromBlueprint(blueprint *Blueprint, maxMinute int) int 
 	}
 
 	var maxNumberGeodes int
-	for _, finishedSimulation := range finishedSimulations {
+	for finishedSimulation := range finishedSimulations {
 		maxNumberGeodes = util.MaxInt(maxNumberGeodes, finishedSimulation.resources.countGeode)
 	}
 
@@ -235,6 +237,7 @@ func evalA(lines []string) int {
 	var sumQualityLevel int
 	for _, blueprint := range blueprints {
 		blueprint.maxNumberGeodes = getMaxNumberOfGeodesFromBlueprint(&blueprint, 24)
+		fmt.Printf("blueprint.maxNumberGeodes = %d\n", blueprint.maxNumberGeodes)
 		sumQualityLevel += blueprint.id * blueprint.maxNumberGeodes
 	}
 
@@ -251,6 +254,7 @@ func evalB(lines []string) int {
 	multipliedMaxNumberGeodes := 1
 	for _, blueprint := range blueprints {
 		blueprint.maxNumberGeodes = getMaxNumberOfGeodesFromBlueprint(&blueprint, 32)
+		fmt.Printf("blueprint.maxNumberGeodes = %d\n", blueprint.maxNumberGeodes)
 		multipliedMaxNumberGeodes *= blueprint.maxNumberGeodes
 	}
 
@@ -261,13 +265,13 @@ func eval(filename string, debug bool) {
 	lines := util.ReadFile(filename)
 
 	resA := evalA(lines)
-	//resB := evalB(lines)
+	resB := evalB(lines)
 	if debug {
 		fmt.Printf("A (debug): %v \n", resA)
-		//fmt.Printf("B (debug): %v \n", resB)
+		fmt.Printf("B (debug): %v \n", resB)
 	} else {
 		fmt.Printf("A: %v \n", resA)
-		//fmt.Printf("B: %v \n", resB)
+		fmt.Printf("B: %v \n", resB)
 	}
 
 }
