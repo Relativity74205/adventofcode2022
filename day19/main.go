@@ -27,18 +27,6 @@ func (r *Resource) String() string {
 	return []string{"ore", "clay", "obsidian"}[*r]
 }
 
-//type robotCosts struct {
-//	resourceCount
-//}
-//
-//type production struct {
-//	resourceCount
-//}
-//
-//type availableResources struct {
-//	resourceCount
-//}
-
 type SimulationState struct {
 	minute     int
 	maxMinute  int
