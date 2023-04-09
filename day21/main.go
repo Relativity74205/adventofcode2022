@@ -9,9 +9,11 @@ import (
 
 type Monkey interface {
 	result() int
+	isImmutable() bool
 }
 
 type YellMonkey struct {
+	name      string
 	number    int
 	immutable bool
 }
@@ -20,33 +22,53 @@ func (y YellMonkey) result() int {
 	return y.number
 }
 
+func (y YellMonkey) isImmutable() bool {
+	return y.immutable
+}
+
 type OpMonkey struct {
+	name         string
 	monkey1Name  string
 	monkey2Name  string
 	monkey1      Monkey
 	monkey2      Monkey
 	operation    string
-	cachedResult int
+	cachedNumber int
 	immutable    bool
 }
 
-func (op OpMonkey) result() int {
+func (op *OpMonkey) result() int {
+	if op.immutable {
+		return op.cachedNumber
+	}
+
+	var result int
 	switch op.operation {
 	case "+":
-		return op.monkey1.result() + op.monkey2.result()
+		result = op.monkey1.result() + op.monkey2.result()
 	case "-":
-		return op.monkey1.result() - op.monkey2.result()
+		result = op.monkey1.result() - op.monkey2.result()
 	case "*":
-		return op.monkey1.result() * op.monkey2.result()
+		result = op.monkey1.result() * op.monkey2.result()
 	case "/":
-		return op.monkey1.result() / op.monkey2.result()
+		result = op.monkey1.result() / op.monkey2.result()
 	default:
 		if op.monkey1.result() == op.monkey2.result() {
-			return 1
+			result = 1
 		} else {
-			return 0
+			result = 0
 		}
 	}
+	if op.monkey1.isImmutable() && op.monkey2.isImmutable() {
+		op.immutable = true
+		op.cachedNumber = result
+	}
+
+	return result
+}
+
+func (op OpMonkey) isImmutable() bool {
+	return op.immutable
 }
 
 func parseInput(lines []string) map[string]Monkey {
@@ -58,15 +80,16 @@ func parseInput(lines []string) map[string]Monkey {
 
 		if len(operationsParts) == 1 {
 			number, _ := strconv.Atoi(operationsParts[0])
-			monkeys[monkeyName] = &YellMonkey{number: number}
+			monkeys[monkeyName] = &YellMonkey{name: monkeyName, number: number, immutable: true}
 		} else {
 			monkeys[monkeyName] = &OpMonkey{
+				name:        monkeyName,
 				monkey1Name: operationsParts[0],
 				monkey1:     nil,
 				monkey2Name: operationsParts[2],
 				monkey2:     nil,
 				operation:   operationsParts[1],
-				immutable:   true,
+				immutable:   false,
 			}
 		}
 	}
@@ -92,34 +115,11 @@ func evalB(lines []string) int {
 	monkeys := parseInput(lines)
 	rootMonkey := monkeys["root"].(*OpMonkey)
 	rootMonkey.operation = "="
-	//djphMonkey, ok := monkeys["djph"].(*OpMonkey)
-	//if ok {
-	//	monkeys["djph"] = YellMonkey{
-	//		number: djphMonkey.result(),
-	//	}
-	//}
-	//pdhtMonkey, ok := monkeys["pdht"].(*OpMonkey)
-	//if ok {
-	//	monkeys["pdht"] = YellMonkey{
-	//		number: pdhtMonkey.result(),
-	//	}
-	//}
-	//dtrd
-	//cpbm
-	//wclc
-	//lfjt
-	//vnct
-	//zclq
-	//gdfm
-	//dgbd
-	//wdwq
-	//snqn
-	//zgnz
-	//gtpm
-	//mnqt
-	for myNumber := 1; myNumber <= 100000; myNumber += 3 {
+	for myNumber := -1000000000; myNumber <= 1000000000; myNumber += 1 {
+		//for myNumber := -10000000; myNumber <= 10000000; myNumber += 1 {
 		humn := monkeys["humn"].(*YellMonkey)
 		humn.number = myNumber
+		humn.immutable = false
 
 		if monkeys["root"].result() == 1 {
 			return myNumber
@@ -132,13 +132,13 @@ func evalB(lines []string) int {
 func eval(filename string, debug bool) {
 	lines := util.ReadFile(filename)
 
-	resA := evalA(lines)
+	//resA := evalA(lines)
 	resB := evalB(lines)
 	if debug {
-		fmt.Printf("A (debug): %v \n", resA)
+		//fmt.Printf("A (debug): %v \n", resA)
 		fmt.Printf("B (debug): %v \n", resB)
 	} else {
-		fmt.Printf("A: %v \n", resA)
+		//fmt.Printf("A: %v \n", resA)
 		fmt.Printf("B: %v \n", resB)
 	}
 
@@ -146,11 +146,11 @@ func eval(filename string, debug bool) {
 
 func main() {
 	day := 21
-	debugSuffix := "_debug"
+	//debugSuffix := "_debug"
 	filename := fmt.Sprintf("input%02d.txt", day)
-	filenameDebug := fmt.Sprintf("input%02d%v.txt", day, debugSuffix)
+	//filenameDebug := fmt.Sprintf("input%02d%v.txt", day, debugSuffix)
 
 	fmt.Printf("Day %02d \n", day)
-	eval(filenameDebug, true)
+	//eval(filenameDebug, true)
 	eval(filename, false)
 }
