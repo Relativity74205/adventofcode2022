@@ -9,36 +9,25 @@ import (
 
 type Monkey interface {
 	result() int
-	isImmutable() bool
-	getOperator() string
+	numberKnown() bool
 	setNumber(int)
-	setMutable(bool)
 }
 
 type YellMonkey struct {
-	name      string
-	number    int
-	immutable bool
+	name   string
+	number int
 }
 
 func (y *YellMonkey) result() int {
 	return y.number
 }
 
-func (y *YellMonkey) isImmutable() bool {
-	return y.immutable
-}
-
-func (y *YellMonkey) getOperator() string {
-	return ""
+func (y *YellMonkey) numberKnown() bool {
+	return y.number != 0
 }
 
 func (y *YellMonkey) setNumber(n int) {
 	y.number = n
-}
-
-func (y *YellMonkey) setMutable(m bool) {
-	y.immutable = m
 }
 
 type OpMonkey struct {
@@ -49,11 +38,10 @@ type OpMonkey struct {
 	monkey2     Monkey
 	operator    string
 	number      int
-	immutable   bool
 }
 
 func (op *OpMonkey) result() int {
-	if op.immutable {
+	if op.numberKnown() {
 		return op.number
 	}
 
@@ -74,28 +62,19 @@ func (op *OpMonkey) result() int {
 			result = 0
 		}
 	}
-	if op.monkey1.isImmutable() && op.monkey2.isImmutable() {
-		op.immutable = true
+	if op.monkey1.numberKnown() && op.monkey2.numberKnown() {
 		op.number = result
 	}
 
 	return result
 }
 
-func (op *OpMonkey) isImmutable() bool {
-	return op.immutable
-}
-
-func (op *OpMonkey) getOperator() string {
-	return op.operator
+func (op *OpMonkey) numberKnown() bool {
+	return op.number != 0
 }
 
 func (op *OpMonkey) setNumber(n int) {
 	op.number = n
-}
-
-func (op *OpMonkey) setMutable(m bool) {
-	op.immutable = m
 }
 
 func parseInput(lines []string) map[string]Monkey {
@@ -107,7 +86,7 @@ func parseInput(lines []string) map[string]Monkey {
 
 		if len(operationsParts) == 1 {
 			number, _ := strconv.Atoi(operationsParts[0])
-			monkeys[monkeyName] = &YellMonkey{name: monkeyName, number: number, immutable: true}
+			monkeys[monkeyName] = &YellMonkey{name: monkeyName, number: number}
 		} else {
 			monkeys[monkeyName] = &OpMonkey{
 				name:        monkeyName,
@@ -116,7 +95,6 @@ func parseInput(lines []string) map[string]Monkey {
 				monkey2Name: operationsParts[2],
 				monkey2:     nil,
 				operator:    operationsParts[1],
-				immutable:   false,
 			}
 		}
 	}
@@ -138,42 +116,40 @@ func evalA(lines []string) int {
 	return monkeys["root"].result()
 }
 
-func getHumnNumber(monkey *OpMonkey) int {
-	if monkey.name == "humn" {
-		return monkey.result()
-	}
-	var mutableMonkey, immutableMonkey Monkey
-	if monkey.monkey1.isImmutable() {
-		immutableMonkey = monkey.monkey1
-		mutableMonkey = monkey.monkey2
+func getHumnNumber(parentMonkey *OpMonkey) int {
+	var unfinishedMonkey, finishedMonkey Monkey
+	if parentMonkey.monkey1.numberKnown() {
+		finishedMonkey = parentMonkey.monkey1
+		unfinishedMonkey = parentMonkey.monkey2
 	} else {
-		immutableMonkey = monkey.monkey2
-		mutableMonkey = monkey.monkey1
+		finishedMonkey = parentMonkey.monkey2
+		unfinishedMonkey = parentMonkey.monkey1
 	}
 
-	switch monkey.getOperator() {
+	switch parentMonkey.operator {
 	case "+":
-		mutableMonkey.setNumber(monkey.result() - immutableMonkey.result())
+		unfinishedMonkey.setNumber(parentMonkey.result() - finishedMonkey.result())
 	case "-":
-		if monkey.monkey1.isImmutable() {
-			mutableMonkey.setNumber(monkey.monkey1.result() - monkey.result())
+		if parentMonkey.monkey1.numberKnown() {
+			unfinishedMonkey.setNumber(finishedMonkey.result() - parentMonkey.result())
 		} else {
-			mutableMonkey.setNumber(monkey.monkey2.result() + monkey.result())
+			unfinishedMonkey.setNumber(finishedMonkey.result() + parentMonkey.result())
 		}
 	case "*":
-		mutableMonkey.setNumber(monkey.result() / immutableMonkey.result())
+		unfinishedMonkey.setNumber(parentMonkey.result() / finishedMonkey.result())
 	case "/":
-		if monkey.monkey1.isImmutable() {
-			mutableMonkey.setNumber(monkey.monkey1.result() / monkey.result())
+		if parentMonkey.monkey1.numberKnown() {
+			unfinishedMonkey.setNumber(finishedMonkey.result() / parentMonkey.result())
 		} else {
-			mutableMonkey.setNumber(monkey.monkey2.result() * monkey.result())
+			unfinishedMonkey.setNumber(finishedMonkey.result() * parentMonkey.result())
 		}
 	}
-	mutableMonkey.setMutable(true)
-	if mutableOpMonkey, ok := mutableMonkey.(*OpMonkey); ok {
+
+	if mutableOpMonkey, ok := unfinishedMonkey.(*OpMonkey); ok {
 		return getHumnNumber(mutableOpMonkey)
 	} else {
-		return mutableMonkey.result()
+		// found answer for B :)
+		return unfinishedMonkey.result()
 	}
 }
 
@@ -183,33 +159,31 @@ func evalB(lines []string) int {
 	rootMonkey.operator = "="
 	humn := monkeys["humn"].(*YellMonkey)
 	humn.number = 0
-	humn.immutable = false
 	// to pre-calculate immutable nodes aka monkeys
 	rootMonkey.result()
 
-	var topMonkey *OpMonkey
-	if rootMonkey.monkey1.isImmutable() {
-		topMonkey = rootMonkey.monkey2.(*OpMonkey)
-		topMonkey.number = rootMonkey.monkey1.result()
+	var firstTopMonkey *OpMonkey
+	if rootMonkey.monkey1.numberKnown() {
+		firstTopMonkey = rootMonkey.monkey2.(*OpMonkey)
+		firstTopMonkey.number = rootMonkey.monkey1.result()
 	} else {
-		topMonkey = rootMonkey.monkey1.(*OpMonkey)
-		topMonkey.number = rootMonkey.monkey2.result()
+		firstTopMonkey = rootMonkey.monkey1.(*OpMonkey)
+		firstTopMonkey.number = rootMonkey.monkey2.result()
 	}
-	topMonkey.immutable = true
 
-	return getHumnNumber(topMonkey)
+	return getHumnNumber(firstTopMonkey)
 }
 
 func eval(filename string, debug bool) {
 	lines := util.ReadFile(filename)
 
-	//resA := evalA(lines)
+	resA := evalA(lines)
 	resB := evalB(lines)
 	if debug {
-		//fmt.Printf("A (debug): %v \n", resA)
+		fmt.Printf("A (debug): %v \n", resA)
 		fmt.Printf("B (debug): %v \n", resB)
 	} else {
-		//fmt.Printf("A: %v \n", resA)
+		fmt.Printf("A: %v \n", resA)
 		fmt.Printf("B: %v \n", resB)
 	}
 
