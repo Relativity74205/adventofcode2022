@@ -3,60 +3,79 @@ package main
 import (
 	"AoC2022"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 )
 
-type monkey interface {
-	result(monkeyMap map[string]monkey) int
+type Monkey interface {
+	result() int
 }
 
-type yellMonkey struct {
-	number int
+type YellMonkey struct {
+	number    int
+	immutable bool
 }
 
-func (y *yellMonkey) result(_ map[string]monkey) int {
+func (y YellMonkey) result() int {
 	return y.number
 }
 
-type opMonkey struct {
-	monkey1   string
-	monkey2   string
-	operation string
+type OpMonkey struct {
+	monkey1Name  string
+	monkey2Name  string
+	monkey1      Monkey
+	monkey2      Monkey
+	operation    string
+	cachedResult int
+	immutable    bool
 }
 
-func (op *opMonkey) result(monkeyMap map[string]monkey) int {
+func (op OpMonkey) result() int {
 	switch op.operation {
 	case "+":
-		return monkeyMap[op.monkey1].result(monkeyMap) + monkeyMap[op.monkey2].result(monkeyMap)
+		return op.monkey1.result() + op.monkey2.result()
 	case "-":
-		return monkeyMap[op.monkey1].result(monkeyMap) - monkeyMap[op.monkey2].result(monkeyMap)
+		return op.monkey1.result() - op.monkey2.result()
 	case "*":
-		return monkeyMap[op.monkey1].result(monkeyMap) * monkeyMap[op.monkey2].result(monkeyMap)
+		return op.monkey1.result() * op.monkey2.result()
 	case "/":
-		return monkeyMap[op.monkey1].result(monkeyMap) / monkeyMap[op.monkey2].result(monkeyMap)
+		return op.monkey1.result() / op.monkey2.result()
 	default:
-		return 0
+		if op.monkey1.result() == op.monkey2.result() {
+			return 1
+		} else {
+			return 0
+		}
 	}
 }
 
-func parseInput(lines []string) map[string]monkey {
-	monkeys := make(map[string]monkey)
+func parseInput(lines []string) map[string]Monkey {
+	monkeys := make(map[string]Monkey)
 	for _, line := range lines {
 		lineParts := strings.Split(line, ": ")
 		monkeyName := lineParts[0]
-		pattern := regexp.MustCompile(`[\+\-\*/]`)
-		operationsParts := pattern.Split(lineParts[1], -1)
+		operationsParts := strings.Split(lineParts[1], " ")
+
 		if len(operationsParts) == 1 {
 			number, _ := strconv.Atoi(operationsParts[0])
-			monkeys[monkeyName] = &yellMonkey{number: number}
+			monkeys[monkeyName] = &YellMonkey{number: number}
 		} else {
-			monkeys[monkeyName] = &opMonkey{
-				monkey1:   operationsParts[0],
-				monkey2:   operationsParts[2],
-				operation: operationsParts[1],
+			monkeys[monkeyName] = &OpMonkey{
+				monkey1Name: operationsParts[0],
+				monkey1:     nil,
+				monkey2Name: operationsParts[2],
+				monkey2:     nil,
+				operation:   operationsParts[1],
+				immutable:   true,
 			}
+		}
+	}
+
+	for _, monkey := range monkeys {
+		opMonkey, isOpMonkey := monkey.(*OpMonkey)
+		if isOpMonkey {
+			opMonkey.monkey1 = monkeys[opMonkey.monkey1Name]
+			opMonkey.monkey2 = monkeys[opMonkey.monkey2Name]
 		}
 	}
 
@@ -66,12 +85,48 @@ func parseInput(lines []string) map[string]monkey {
 func evalA(lines []string) int {
 	monkeys := parseInput(lines)
 
-	return 0
+	return monkeys["root"].result()
 }
 
 func evalB(lines []string) int {
+	monkeys := parseInput(lines)
+	rootMonkey := monkeys["root"].(*OpMonkey)
+	rootMonkey.operation = "="
+	//djphMonkey, ok := monkeys["djph"].(*OpMonkey)
+	//if ok {
+	//	monkeys["djph"] = YellMonkey{
+	//		number: djphMonkey.result(),
+	//	}
+	//}
+	//pdhtMonkey, ok := monkeys["pdht"].(*OpMonkey)
+	//if ok {
+	//	monkeys["pdht"] = YellMonkey{
+	//		number: pdhtMonkey.result(),
+	//	}
+	//}
+	//dtrd
+	//cpbm
+	//wclc
+	//lfjt
+	//vnct
+	//zclq
+	//gdfm
+	//dgbd
+	//wdwq
+	//snqn
+	//zgnz
+	//gtpm
+	//mnqt
+	for myNumber := 1; myNumber <= 100000; myNumber += 3 {
+		humn := monkeys["humn"].(*YellMonkey)
+		humn.number = myNumber
 
-	return 0
+		if monkeys["root"].result() == 1 {
+			return myNumber
+		}
+	}
+
+	return -1
 }
 
 func eval(filename string, debug bool) {
