@@ -197,16 +197,20 @@ func getStartPosX(firstRow []int) int {
 func parseInput(lines []string) (Board, []Instruction) {
 	instructionsString := lines[len(lines)-1]
 	var instructions []Instruction
-	var instruction string
+	var newMoveInstruction string
 	for _, char := range instructionsString {
 		if char == 'R' || char == 'L' {
-			amountMoves, _ := strconv.Atoi(instruction)
+			amountMoves, _ := strconv.Atoi(newMoveInstruction)
 			instructions = append(instructions, Instruction{amountsMoves: amountMoves})
-			instruction = ""
+			newMoveInstruction = ""
 			instructions = append(instructions, Instruction{rotate: string(char)})
 		} else {
-			instruction += string(char)
+			newMoveInstruction += string(char)
 		}
+	}
+	if newMoveInstruction != "" {
+		amountMoves, _ := strconv.Atoi(newMoveInstruction)
+		instructions = append(instructions, Instruction{amountsMoves: amountMoves})
 	}
 
 	boardHeight := len(lines) - 2
@@ -231,6 +235,17 @@ func parseInput(lines []string) (Board, []Instruction) {
 	}
 
 	startPosX := getStartPosX(boardMap[0])
+
+	direction := 1
+	for _, instruction := range instructions {
+		switch instruction.rotate {
+		case "R":
+			direction += 1
+		case "L":
+			direction -= 1
+		default:
+		}
+	}
 
 	return Board{
 		boardMap:    boardMap,
